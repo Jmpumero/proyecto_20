@@ -1,0 +1,16 @@
+#Variables
+c = g++
+PRINCIPAL = DOM_Tree.h
+debug = -ggdb
+EXE =proyecto
+#Compilando y Ejecutando
+PRINCIPAL:
+	@ clear
+	@ $(c) $(PRINCIPAL) -o $(EXE)
+	@ echo
+	@ echo
+	@ echo
+#Ejecutable
+	@ ./$(EXE) 
+
+

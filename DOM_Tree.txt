@@ -1,0 +1,640 @@
+#ifndef DOM_Tree_H
+#define DOM_Tree_H
+
+#include <iostream>
+#include "Node.h"
+
+class DOM_Tree
+{
+	private:
+		///Atributos
+		Node<Element> *raiz;
+		int longitud;
+		
+		///Métodos estáticos
+		static Node<Element>* copiarNodos(Node<Element> *copia);
+		static void eliminarNodos(Node<Element> *p);
+		static Node<Element>* buscarID(Node<Element> *r, string id,bool &band);
+	
+	public:
+		///Constructores
+		DOM_Tree();
+		DOM_Tree(Element p);
+		DOM_Tree(Element r,list<DOM_Tree> l);
+		
+		///Consultores
+		DOM_Tree childNode(int p);
+		
+		///Modificadores
+		void copiar(DOM_Tree a);
+		void eliminar(DOM_Tree a);
+		void appenChild(DOM_Tree &a, int p); ///AppenChild con Posición
+		void appenChild(DOM_Tree &a); ///AppenChild que agrega un nuevo hijo en la última posición
+		void removeChild(int p); /// Elimina el hijo de la posición dada
+		void appenChild(string cad1);
+		Node<Element>* appenChild1(string *cad1);
+		void replaceChild(DOM_Tree a,int p);
+		void replaceChild(DOM_Tree a);
+		DOM_Tree getElementByID(string id);
+		///SobreCarga de Operadores
+		friend std::ostream& operator<<(std::ostream& salida,const DOM_Tree &a)
+		{
+			list<string> l;
+			DOM_Tree arbolAux;
+			if(a.raiz!=NULL)
+			{
+				salida << "		";
+				salida << a.raiz->element().tagName();
+				l = a.raiz->element().attributeList();
+				salida << "\n";
+				while(!l.empty())
+				{
+					salida << " " << l.front();
+					l.pop_front();
+				}
+				salida << "\n" ;
+				salida << "		 " << a.raiz->element().innerHTML() << "\n";
+				arbolAux.raiz = a.raiz->firstChild();
+				salida<<arbolAux;
+				arbolAux.raiz = a.raiz->nextSibling();
+				salida<<arbolAux;
+			}
+			arbolAux.raiz=NULL;
+			return(salida);
+		}	
+		~DOM_Tree();
+};
+
+DOM_Tree::DOM_Tree()
+{
+	raiz = NULL;
+}
+
+
+DOM_Tree::DOM_Tree(Element p)
+{
+	raiz = new Node<Element>(p,NULL,NULL);
+}
+
+DOM_Tree::DOM_Tree(Element r,list<DOM_Tree> l)
+{
+	Node<Element> *aux;
+	DOM_Tree ArbolAux;
+	raiz=new Node<Element>(r,NULL,NULL);
+	aux = raiz;
+	if(!l.empty())
+	{
+		ArbolAux.copiar(l.front());
+		aux->setFirstChild(ArbolAux.raiz);
+		l.pop_front();
+		aux = aux->nextSibling();
+		while(!l.empty())
+		{
+			ArbolAux.copiar(l.front());
+			l.pop_front();
+			aux->setNextSibling(ArbolAux.raiz);
+			aux = aux->nextSibling();
+		}
+	}	
+	ArbolAux.raiz=NULL;
+}
+
+void DOM_Tree::copiar(DOM_Tree a)
+{
+	Node<Element> *nuevo,*hi;
+	if(a.raiz != NULL)
+	{
+		hi=copiarNodos(a.raiz->firstChild());
+		nuevo=new Node<Element>(a.raiz->element(),hi,NULL);
+	}else
+		nuevo=NULL;
+	raiz=nuevo;
+	longitud=a.longitud;
+}
+
+Node<Element>* DOM_Tree::copiarNodos(Node<Element> *copia)
+{
+	Node<Element> *aux;
+	if(copia==NULL)
+	{
+		aux=NULL;
+	}else{
+			aux = new Node<Element>(copia->element(),copiarNodos(copia->firstChild()),copiarNodos(copia->nextSibling()));
+	}
+	return(aux);
+}
+
+DOM_Tree DOM_Tree::childNode(int p)
+{
+	DOM_Tree ArbolAux;
+	bool band = false;
+	int i=1;
+	Node<Element> *ptr,*r;
+	ptr = raiz;
+	if(ptr != NULL)
+	{
+		ptr = raiz->firstChild();
+		if(p == 1)
+		{
+			ArbolAux.raiz = ptr;
+		}else{
+				if( ptr->nextSibling() != NULL)
+					band = true;
+				while((i<= p) && (band))
+				{
+					ptr = ptr->nextSibling();
+					if(ptr->nextSibling() == NULL)
+						band = false;
+					i++;
+				}
+				ArbolAux.raiz = ptr;
+		}
+		if((i == p) && (band))
+		{
+			r=copiarNodos(ptr->firstChild());
+			ArbolAux.raiz->setFirstChild(r);	
+		}else{
+				ArbolAux.raiz = NULL;
+		}
+	}
+	return(ArbolAux);
+}
+
+
+void DOM_Tree::appenChild(DOM_Tree &a, int p)	//PROBADOOOOOOOOOOOOO
+{
+	bool band = false;
+	Node<Element> *ptr,*ptr2;
+	int i=1;
+	
+	ptr = raiz;  
+	if(ptr != NULL)
+	{
+		ptr = raiz->firstChild();
+		if(p == 1)
+		{
+			raiz->setFirstChild(copiarNodos(a.raiz));
+			raiz->firstChild()->setNextSibling(ptr);
+		}else{
+				if(ptr->nextSibling()!=NULL)
+				{
+					if(p == 2)
+						band = false;
+					else
+						band = true;
+				}
+				while((i<=p-1) && (band))
+				{
+					ptr = ptr->nextSibling();
+					if(ptr->nextSibling() == NULL)
+						band = false;
+					i++;
+				}
+				if((i == p-1) || (band))
+				{
+					ptr2=ptr->nextSibling();
+					ptr->setNextSibling(copiarNodos(a.raiz));
+					ptr=ptr->nextSibling();
+					ptr->setNextSibling(ptr2);
+			
+				}	
+		}
+	}
+}
+
+void DOM_Tree::appenChild(DOM_Tree &a)   //PROBADOOOOOOOOOOOOOOO
+{
+	Node<Element> *ptr;
+	ptr = raiz;
+	if(ptr != NULL)
+	{
+		ptr = raiz->firstChild();
+		if(ptr == NULL)
+		{
+			raiz->setFirstChild(copiarNodos(a.raiz));
+		}else{
+				while(ptr->nextSibling()!=NULL)
+				{
+					ptr = ptr->nextSibling();
+				}
+				ptr->setNextSibling(copiarNodos(a.raiz));
+		}
+	}	
+}
+	
+
+	
+void DOM_Tree::removeChild(int p)
+{
+	bool band=false;
+	int i=1;
+	Node<Element> *ptr1,*ptr2;
+	
+	ptr1 = raiz;
+	if(raiz!=NULL)
+	{
+		ptr1 = raiz->firstChild();
+		if(p == 1)
+		{
+			if(ptr1 != NULL)
+				raiz->setFirstChild(ptr1->nextSibling());
+		}else{
+				ptr2 = ptr1->nextSibling();
+				if(ptr2!=NULL)
+					band = true;
+				while((i<p-1) && (band))
+				{
+					ptr1 = ptr2;
+					ptr2 = ptr2->nextSibling();
+					if(ptr2 == NULL)
+						band = false; 
+					i++;
+				}
+				if(i == p-1)
+				{
+					ptr1->setNextSibling(ptr2->nextSibling());
+				}
+			}
+	}	
+}
+
+void DOM_Tree::eliminarNodos(Node<Element> *p)
+{
+	if(p != NULL)
+	{
+		if(p->firstChild()!=NULL)
+			eliminarNodos(p->firstChild());
+		if(p->nextSibling()!=NULL)
+			eliminarNodos(p->nextSibling());
+		delete(p);
+		p = NULL;
+	}
+
+}
+
+
+
+void DOM_Tree::eliminar(DOM_Tree a)
+{
+	eliminarNodos(a.raiz);
+}
+
+
+/*
+void DOM_Tree::replaceChild(DOM_Tree a)
+{
+	Node<Element> *ptr1;
+	
+	ptr1 = raiz;
+	if(ptr1!=NULL)
+	{
+		ptr1 = ptr1->firstChild();
+		if(pt1 == NULL)
+		{
+			raiz->setFirstChild(a.raiz);
+		}else{
+				if(ptr->nextSibling()!=NULL)
+					band = true;
+				while((i<=p-1) && (band))
+				{
+					ptr = ptr->nextSibling();
+					if(ptr->nextSibling() == NULL)
+						band = false;
+					i++;
+				}
+				
+		}
+	}
+}
+*/
+
+DOM_Tree DOM_Tree::getElementByID(string id)
+{
+	DOM_Tree a;
+	bool band = false;
+	Node<Element> *ptr1,*ptr2;
+	ptr1 = this->raiz;
+	
+	ptr2=(buscarID(ptr1,id,band));
+	if(band == true)
+	{
+		a.raiz=copiarNodos(ptr2);
+	}
+	return(a);
+}
+
+
+Node<Element>* DOM_Tree::buscarID(Node<Element> *p,string id,bool &band)
+{
+	Node<Element> *ptr;
+	if(p != NULL && !band)
+	{
+		if(id == p->element().tagName())
+			band = true;
+		else{
+			ptr=buscarID(p->firstChild(),id,band);
+			if(!band)
+				ptr=buscarID(p->nextSibling(),id,band);
+		}
+	}
+	return(p);
+	
+}
+
+DOM_Tree::~DOM_Tree()
+{
+	eliminarNodos(this->raiz);
+}
+
+/*
+void DOM_Tree::appenChild(string cad1)
+{
+	
+	
+	Node<Element> *nuevo, *ptr;
+	int a,i,t,k;
+	//list<string> l;
+	list<string>::iterator il;
+	string tag,aux,indice,indice2,iner;
+	bool b;
+	b=true;
+	
+	i=0;
+	indice=cad1[i];
+	a=cad1.size();
+	cout<<""<<cad1<<endl;
+	
+		nuevo= new Node<Element>();
+		raiz=nuevo;
+		///primera parte obtiene el tag  y los tributos de la lista 
+		
+			while (indice!= ">")
+			{
+				cout<<""<<indice<<endl;
+				if (indice==" ")
+				{
+					
+					t=i;
+					if (b)
+					{
+						b=false;
+						raiz->element().tag=cad1.substr(1,t-2); //obtiene el tag
+						cad1=cad1.substr(t,a);
+					
+					}else
+					{
+						aux=cad1.substr(0,t);
+						//cout<<aux<<endl;
+						cad1=cad1.substr(t,a);
+						raiz->element().list_Atributos.insert(il,aux);
+						il++;
+					}
+					
+					i=0;
+				}
+				
+				i++;
+				indice=cad1[i];
+			}
+			
+			if (!b)
+			{
+				aux=cad1.substr(0,i-1);
+				//cout<<aux<<endl;
+				cad1=cad1.substr(i,a);
+				raiz->element().list_Atributos.insert(il,aux);
+				il++;
+			}else
+			{
+				
+				nuevo->element().tag=cad1.substr(1,i-1);
+				cad1=cad1.substr(i+1,a);
+				
+			
+			}
+			///hasta aqui
+		
+		///y hasta aqui la primera etapa
+		
+		///se obtiene el inerr
+		i=0;
+		indice=cad1[i];
+		a=cad1.size(); //se calcula el nuevo tamaño de la cadena
+		while (indice!="<")
+		{
+			i++;
+			indice=cad1[i];
+				
+		}
+		raiz->element().inner=cad1.substr(0,i-1);
+		//cout<<"iner"<<raiz->elem.inner;
+		cad1=cad1.substr(i,a);
+	
+		
+		
+		a=cad1.size();
+		
+		
+			i=0;
+			indice=cad1[i];
+			indice2=cad1[i+1];
+			
+			
+			if (indice2 != "/")//indica que tiene un hijo
+			{
+				
+				if (raiz->firstChild()==NULL)
+				{
+					
+					raiz->setFirstChild(appenChild1(&cad1));
+					
+					
+					i=0;
+					indice=cad1[i];
+					indice2=cad1[i+1];
+					if (indice2 != "/")
+					{
+						if (raiz->nextSibling()==NULL)
+						{
+							raiz->setNextSibling(appenChild1(&cad1));
+						}else
+						{
+							ptr=raiz->nextSibling();
+							while (ptr->nextSibling()!=NULL)
+							{
+								ptr=ptr->nextSibling();
+							}
+							ptr->setNextSibling(appenChild1(&cad1));
+						}
+						
+						
+						//raiz->setNextSibling(appenChild(cad1));
+					}else
+					{ //actualizar la cadena
+						i=0;
+						indice=cad1[i];
+						a=cad1.size();
+						while (indice!=">") 
+						{
+							i++;
+						}
+						if (i<=a)
+						{
+							cad1=cad1.substr(i,a);
+						}else
+						{
+							cad1=cad1.substr(0,a);
+						}
+					}
+					
+				
+				
+				
+			}else
+				{ //actualizacion de la cadena antes de regresar
+							ptr=raiz->nextSibling();
+							while (ptr->nextSibling()!=NULL)
+							{
+								ptr=ptr->nextSibling();
+							}
+							ptr->setNextSibling(appenChild1(&cad1));
+					
+					}
+			
+		}else
+		{
+			i=0;
+				indice=cad1[i];
+				a=cad1.size();
+				while (indice!=">")
+				{
+					i++;
+				}
+				if (i<=a)
+				{
+					cad1=cad1.substr(i,a);
+				}else
+				{
+					cad1=cad1.substr(0,a);
+				}
+		}
+}
+
+void DOM_Tree::replaceChild(DOM_Tree a)
+{
+	Node<Element> *ptr1;
+	
+	ptr1 = raiz;
+	if(ptr1!=NULL)
+	{
+		ptr1 = ptr1->firstChild();
+		if(ptr1 == NULL)
+		{
+			raiz->setFirstChild(a.raiz);
+		}else{
+				while(ptr1->nextSibling()!=NULL)
+				{
+					ptr1 = ptr1->nextSibling();
+				}
+				ptr1->setNextSibling(a.raiz);
+		}
+	}
+}
+
+
+
+Node<Element>* DOM_Tree::appenChild1(string *cad1)
+{
+	
+	
+	
+	Node<Element> *nuevo;
+	ptr;
+	int a,i,t;
+	//list<string> l;
+	list<string>::iterator il;
+	string tag,aux,indice,indice2,iner;
+	bool b;
+	b=true;
+	i=0;
+	indice=cad1[i];
+	a=cad1->size();
+	
+	if(a<=0)
+	{
+		
+		nuevo= new Node<Element>();
+		il=nuevo->element().list_Atributos.begin(); 
+		
+		///primera parte obtiene el tag  y los tributos de la lista 
+		
+			while (indice!= ">")
+			{
+				
+				if (indice==" ")
+				{
+					t=i;
+					if (b)
+					{
+						b=false;
+						nuevo->element().tag=cad1->substr(1,t); //obtiene el tag
+						*cad1=cad1->substr(t,a);
+					
+					}else
+					{
+						aux=cad1->substr(0,t);
+						//cout<<aux<<endl;
+						*cad1=cad1->substr(t,a);
+						nuevo->element().list_Atributos.insert(il,aux);
+						il++;
+					}
+					
+					i=0;
+				}
+				
+				i++;
+				indice=cad1[i];
+			}
+			///cout<<"indice="<<indice<<endl;
+			if (!b)
+			{
+				aux=cad1->substr(0,i-1);
+				//cout<<aux<<endl;
+				*cad1=cad1->substr(i,a);
+				nuevo->element().list_Atributos.insert(il,aux);
+				il++;
+			}else
+			{
+				
+				nuevo->element().tag=cad1->substr(1,i-1);
+				*cad1=cad1->substr(i+1,a);
+				
+			
+			}
+			///hasta aqui
+		
+		///y hasta aqui la primera etapa
+		
+		///se obtiene el inerr
+		i=0;
+		indice=cad1[i];
+		a=cad1->size(); //se calcula el nuevo tamaño de la cadena
+		while (indice!="<")
+		{
+			i++;
+			indice=cad1[i];
+				
+		}
+		if (i<=a)
+		{
+			nuevo->element().inner=cad1->substr(0,i-1);
+			*cad1=cad1->substr(i,a);
+			
+		}
+		return(nuevo);
+	}
+}
+*/
+
+
+#endif
